@@ -1,34 +1,21 @@
-from tool import tool
-import win32con
-import win32process
-import win32api
 import time
 
-reset_time = 0.5
+from class_gather.process_class import ProcessMemoryControl\
+
+ac_clinet_process = ProcessMemoryControl("ac_client")
 
 OFFSET = 0xEC
-PROCESS_ALL_ACCESS = win32con.PROCESS_ALL_ACCESS
 
-process_name = "ac_client"
+hp = 100
+pointer_start = ac_clinet_process.base_addr + 0x0017E0A8
+sig = ac_clinet_process.read(ac_clinet_process.base_addr, 2)
 
-process_pid = tool.Getpid(process_name)
-process_base_addr = tool.get_base_addr(process_name)
+pointer_start : bytes = ac_clinet_process.read(pointer_start, 4)
+pointer_start = int.from_bytes(pointer_start, "little")
 
-OpenProcess = win32api.OpenProcess
-CloseHandle = win32api.CloseHandle
-ReadProcessMemory = win32process.ReadProcessMemory
-WritePocessMemory = win32process.WriteProcessMemory
-
-process = OpenProcess(PROCESS_ALL_ACCESS, False, process_pid)
-
-if process:
-    hp = 100
-    pointer_start = process_base_addr + 0x0017E0A8
-    pointer_start : bytes = ReadProcessMemory(process, pointer_start, 4)
-    pointer_start = int.from_bytes(pointer_start, "little")
-    while True:
-        WritePocessMemory(process, pointer_start + OFFSET, hp.to_bytes(4, "little"))
-        time.sleep(reset_time)
-    CloseHandle(process)
-else:
-    print("프로세서 열기 실패함")
+while True:
+    cur_hp = ac_clinet_process.read(pointer_start + OFFSET, 4)
+    cur_hp = int.from_bytes(cur_hp, "little")
+    print("현재 체력 : ", cur_hp)
+    ac_clinet_process.write(pointer_start + OFFSET, hp.to_bytes(4, "little"))
+    time.sleep(0.5)
